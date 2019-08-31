@@ -1,6 +1,14 @@
 #include <avr/sleep.h>
 #include <avr/interrupt.h>
 
+
+#define OFF_LEVEL (int16_t)255
+#define MAX_BRIGHTNESS 251
+#define MIN_BRIGHTNESS 3
+#define MICROS_PER_BRIGHTNESS_STEP 1000
+#define BUTTON_DELAY 400
+
+
 // min brightness = 3
 #ifdef __AVR_ATtiny85__
 #define LED_PIN 4
@@ -11,11 +19,13 @@
 #else
 #define LED_PIN 3
 #define BUTTON_PIN 2
+#define DELAY_MULTIPLIER (uint32_t)1
 #endif
 
 #include "helpers.h"
-#define MICROS_PER_BRIGHTNESS_STEP 1000
-#define BUTTON_DELAY 300
+#include "ClickChain.h"
+
+ClickChain mainButton(BUTTON_PIN, 1, 1, 30*DELAY_MULTIPLIER);
 
 enum class OPERATING_MODE {
   OFF,
@@ -27,9 +37,8 @@ enum class OPERATING_MODE {
 };
 
 OPERATING_MODE operating_mode = OPERATING_MODE::OFF, previous_operating_mode = OPERATING_MODE::ON;
-uint8_t brightness = 23, current_brightness = 23, sleep_mode = 1, debounce_pin_state = 1, old_pin_state = 1, beacon_mode = 0, operations_done = 0, click_chain_counter = 0;
-uint32_t debounce_timer = 0, mode_timer = 0, time_to_sleep = 0, brightness_timer = 0;
-uint32_t click_chain[20];
+uint8_t brightness = 23, current_brightness = 23, sleep_mode = 1, beacon_mode = 0, operations_done = 0;
+uint32_t mode_timer = 0, time_to_sleep = 0, brightness_timer = 0;
 uint16_t voltage = 0;
 uint8_t voltage_temp = 0, voltage_digit = 0;
 const uint16_t beacon_duration[4][3] = {{500, 1000, 0}, {100, 900, 0}, {50, 150, 0}, {0}}; //zero terminated arrays, both ways
@@ -68,11 +77,28 @@ void sleep() {
   ADCSRA |= _BV(ADEN);                    // ADC on
   sei();                                  // Enable interrupts
 
-  click_chain_counter = 0;
+//  click_chain_counter = 0;
   sleep_mode = 2;
   time_to_sleep = x_millis();
   //  x_delay(20);
 } // sleep
+
+
+void button_down(uint8_t clickCount){
+  nanoDebug(String(String("button_down: ") + String(clickCount)).c_str());
+}
+
+void button_up(uint8_t clickCount){
+  nanoDebug(String(String("button_up: ") + String(clickCount)).c_str());
+}
+
+void button_hold(uint8_t clickCount){
+  nanoDebug(String(String("button_hold: ") + String(clickCount)).c_str());
+}
+
+void button_at_rest(uint8_t clickCount){
+  nanoDebug(String(String("button_at_rest: ") + String(clickCount)).c_str());
+}
 
 void setup() {
 #ifdef __AVR_ATtiny85__
@@ -87,31 +113,13 @@ void setup() {
 
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
+//  pinMode(BUTTON_PIN, INPUT_PULLUP);
 
-  click_chain[0] = 0;
-  click_chain_counter = 0;
+  mainButton.setFunctions(button_down, button_up, button_hold, button_at_rest);
+  mainButton.begin(300*DELAY_MULTIPLIER);
+
   x_delay(50);
   nanoDebug("START");
-}
-
-void check_pin_change() {
-  uint8_t pin_state = digitalRead(BUTTON_PIN);
-
-  if (pin_state != debounce_pin_state) {
-    debounce_pin_state = pin_state;
-    debounce_timer = x_millis();
-  }
-
-  if (x_millis() - debounce_timer > 30 && pin_state != old_pin_state) {
-    if (click_chain_counter == 0 && pin_state == 1) return; //error state, we missed the down-click or something happend that shouldn't happen
-    if (click_chain_counter < 19) {
-      click_chain[click_chain_counter] = x_millis();
-      click_chain_counter++;
-    }
-    old_pin_state = pin_state;
-  }
-
 }
 
 void led_write(uint8_t force = 0) {
@@ -133,17 +141,18 @@ void led_write(uint8_t force = 0) {
 
 
 void loop() {
+  mainButton.run();
 
   //  if (sleep_mode == 1 && (x_millis() - time_to_sleep) > 1000) sleep();
   if (sleep_mode == 1) sleep();
 
-  if (click_chain_counter) nanoDebug("STATUS");
-  if (click_chain_counter) nanoDebug(String(x_millis() - click_chain[click_chain_counter - 1]).c_str());
-  if (click_chain_counter) nanoDebug(String(click_chain_counter).c_str());
+//  if (click_chain_counter) nanoDebug("STATUS");
+//  if (click_chain_counter) nanoDebug(String(x_millis() - click_chain[click_chain_counter - 1]).c_str());
+//  if (click_chain_counter) nanoDebug(String(click_chain_counter).c_str());
 
-  check_pin_change();
+//  check_pin_change();
   //  led_write();
-
+/*
   if (click_chain_counter > 0) {
     if (click_chain_counter % 2) {
       //button down, button hold
@@ -270,7 +279,7 @@ void loop() {
       }
     }
   }
-
+*/
   if (operating_mode == OPERATING_MODE::OFF) {
     analogWrite(LED_PIN, 0);
   } else if (operating_mode == OPERATING_MODE::ON) {

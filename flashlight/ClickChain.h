@@ -14,7 +14,6 @@ class ClickChain {
     uint32_t click_chain_timer = 0;
     uint8_t debounce_pin_state = 1, old_pin_state = 1, click_chain_counter = 0;
     uint32_t debounce_timer = 0, time_to_sleep = 0, debounce_ms;
-//    uint32_t click_chain[20];
 
     void (*button_down)(uint8_t), (*button_up)(uint8_t); //immediate actions
     void (*button_hold)(uint8_t), (*button_at_rest)(uint8_t); //confirmed actions
@@ -29,13 +28,14 @@ class ClickChain {
 
       if (millis() - debounce_timer > debounce_ms && pin_state != old_pin_state) {
 
-        if (click_chain_counter == 0 && pin_state == resting_position) return; //error state, we missed the start of the click or the chain has ended, anyway nothing to do
-
-        if (click_chain_counter < 19) {
-//          click_chain[click_chain_counter] = millis();
-          click_chain_timer = millis();
-          click_chain_counter++;
+        if (click_chain_counter == 0 && pin_state == resting_position) {
+          last_click_event = 0;
+          old_pin_state = pin_state;
+          return; //error state, we missed the start of the click or the chain has ended, anyway nothing to do
         }
+
+        click_chain_timer = millis();
+        click_chain_counter++;
         old_pin_state = pin_state;
       }
     }
@@ -44,29 +44,28 @@ class ClickChain {
       if (click_chain_counter > 0) { //click event occured
 
         if (click_chain_counter % 2) { //button pressed
-//          if ((millis() - click_chain[click_chain_counter - 1]) > state_change_timeout ) {
-          if ((millis() - click_chain_timer) > state_change_timeout ) {
-            if (last_click_event == 1) {
-              if (button_hold) button_hold(click_chain_counter / 2 + 1); //call button hold confirmed function
-              last_click_event = 2;
-            }
+          if (last_click_event == 0 || last_click_event == 3) {
+            last_click_event = 1;
+            if (button_down) button_down(click_chain_counter / 2 + 1); //call button pressed function
           }
 
-          if (last_click_event == 0 || last_click_event == 3) {
-            if (button_down) button_down(click_chain_counter / 2 + 1); //call button pressed function
-            last_click_event = 1;
-          }
-        } else { //button not pressed
           if ((millis() - click_chain_timer) > state_change_timeout ) {
-            if (last_click_event == 3) {
-              if (button_at_rest) button_at_rest(click_chain_counter / 2); //call button at rest confirmed function
-              last_click_event = 0;
-              click_chain_counter = 0;
+            if (last_click_event == 1) {
+              last_click_event = 2;
+              if (button_hold) button_hold(click_chain_counter / 2 + 1); //call button hold confirmed function
             }
           }
+        } else { //button not pressed
           if (last_click_event == 1 || last_click_event == 2) {
-            if (button_up) button_up(click_chain_counter / 2); //call button at rest function
             last_click_event = 3;
+            if (button_up) button_up(click_chain_counter / 2); //call button at rest function
+          }
+          if ((millis() - click_chain_timer) > state_change_timeout ) {
+            if (last_click_event == 3) {
+              last_click_event = 0;
+              if (button_at_rest) button_at_rest(click_chain_counter / 2); //call button at rest confirmed function
+              click_chain_counter = 0;
+            }
           }
         }
       }
@@ -86,7 +85,6 @@ class ClickChain {
       this->state_change_timeout = button_up_timeout;
     }
     void setFunctions(void (*button_down)(uint8_t), void (*button_up)(uint8_t), void (*button_hold)(uint8_t), void (*button_at_rest)(uint8_t)) {
-
       this->button_down = button_down; //instant callback
       this->button_up = button_up; //instant callback
       this->button_hold = button_hold; //callback after state_change_timeout
@@ -99,22 +97,10 @@ class ClickChain {
     }
 
     uint32_t sinceLastEvent() {
-//      return millis() - click_chain_timer - (last_click_event == 2 || last_click_event == 0) ? 0:state_change_timeout;
-
-
-        if (last_click_event == 2 || last_click_event == 0)
-          return millis() - click_chain_timer - state_change_timeout;
-        else
-          return millis() - click_chain_timer;
-
-      
-//      if (click_chain_counter){
-//        if (last_click_event == 2 || last_click_event == 0)
-//          return millis() - click_chain[click_chain_counter - 1] - state_change_timeout;
-//        else
-//          return millis() - click_chain[click_chain_counter - 1];
-//      }
-//      else return 0;
+      if (last_click_event == 2 || last_click_event == 0)
+        return millis() - click_chain_timer - state_change_timeout;
+      else
+        return millis() - click_chain_timer;
     }
 
     void endChain() {

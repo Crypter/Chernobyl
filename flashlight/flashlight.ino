@@ -2,10 +2,10 @@
 #include <avr/interrupt.h>
 
 
-#define MAX_BRIGHTNESS 251
+#define MAX_BRIGHTNESS 251  //turbo will always be 255
 #define MIN_BRIGHTNESS 3
-#define MICROS_PER_BRIGHTNESS_STEP 20
-#define INVERTED_BRIGHTNESS 1
+#define MICROS_PER_BRIGHTNESS_STEP 350 //simulating a normal bulb
+#define INVERTED_BRIGHTNESS 1 //p-channel mosfet driver
 
 // min brightness = 3
 #ifdef __AVR_ATtiny85__
@@ -85,24 +85,26 @@ void sleep() {
 
 
 void led_write(uint8_t force = 0) {
+  uint8_t target_brightness = (light_enabled) ? brightness : 0;
   if (force) {
-    current_brightness = brightness;
-
-  } else if (!light_enabled && current_brightness > 0) {
-    if (x_micros() - brightness_timer >= MICROS_PER_BRIGHTNESS_STEP) {
-      current_brightness -= min(current_brightness, (x_micros() - brightness_timer) / MICROS_PER_BRIGHTNESS_STEP);
-      brightness_timer = x_micros();
-    }
+    current_brightness = target_brightness;
+      nanoDebug(String(  "forced brightness"   ).c_str());
   }
-  else if (current_brightness < brightness && light_enabled) {
+  
+  if (current_brightness == target_brightness){    
+      brightness_timer = x_micros();
+
+  } else if (current_brightness < target_brightness) {
     if (x_micros() - brightness_timer >= MICROS_PER_BRIGHTNESS_STEP) {
-      current_brightness += min(brightness - current_brightness, (x_micros() - brightness_timer) / MICROS_PER_BRIGHTNESS_STEP);
+      nanoDebug(String(  String(x_micros() - brightness_timer) + " | " + String(current_brightness)   ).c_str());
+      current_brightness += min(target_brightness - current_brightness, (x_micros() - brightness_timer) / MICROS_PER_BRIGHTNESS_STEP);
       brightness_timer = x_micros();
     }
 
-  } else if (current_brightness > brightness) {
+  } else if (current_brightness > target_brightness) {
     if (x_micros() - brightness_timer >= MICROS_PER_BRIGHTNESS_STEP) {
-      current_brightness -= min(current_brightness - brightness, (x_micros() - brightness_timer) / MICROS_PER_BRIGHTNESS_STEP);
+      nanoDebug(String(  String(x_micros() - brightness_timer) + " | " + String(current_brightness)   ).c_str());
+      current_brightness -= min(current_brightness - target_brightness, (x_micros() - brightness_timer) / MICROS_PER_BRIGHTNESS_STEP);
       brightness_timer = x_micros();
     }
   }
@@ -329,6 +331,7 @@ void loop() {
       i = 0;
     }
     light_enabled = ((i + 1) % 2);
+    if (beacon_mode > 0) led_write(1);
 
   } else if (operating_mode == OPERATING_MODE::VOLTAGE) {
     //    nanoDebug(String(  String((int32_t)x_millis() - mode_timer) + String(" | ") + String(voltage) + String(", ") + String(voltage_digit) + String(", ") + String(voltage_temp)  ).c_str());

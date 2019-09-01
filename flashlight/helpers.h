@@ -4,8 +4,8 @@ const uint8_t cie[256] = {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 
 
 void nanoDebug(const char *data){
 #ifndef __AVR_ATtiny85__
-//  Serial.println(data);
-//  Serial.flush();
+  Serial.println(data);
+  Serial.flush();
 #endif
 }
 

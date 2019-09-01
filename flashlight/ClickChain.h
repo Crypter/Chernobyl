@@ -1,5 +1,5 @@
-#ifndef BUTTONHANDLER_H
-#define BUTTONHANDLER_H
+#ifndef CLICKCHAIN_H
+#define CLICKCHAIN_H
 
 
 class ClickChain {

@@ -221,7 +221,8 @@ void button_at_rest(uint8_t clickCount) {
   }
 
   if (clickCount == 2 && operating_mode == OPERATING_MODE::ON) {
-    brightness = 255; //turbo
+    if (brightness != 255) brightness = 255; //turbo
+    else brightness = 1; //moonlight
     light_enabled = 1;
     return;
   }
@@ -413,7 +414,7 @@ void loop() {
       analogWrite(RED_LED_PIN,  (sleep_mode == 1) ? 0 : 8);
     } else {
       digitalWrite(GREEN_LED_PIN, 0);
-      analogWrite(RED_LED_PIN,  (sleep_mode == 1 && (x_millis() / 500) % 2) ? 0 : 8);
+      analogWrite(RED_LED_PIN,  (sleep_mode == 1 || (x_millis() / 500) % 2) ? 0 : 8);
     }
   }
 

@@ -120,6 +120,7 @@ void button_down(uint8_t clickCount) {
 
   if (operating_mode == OPERATING_MODE::CHARGING) {
     mainButton.endChain();
+    return;
   }
 
   if (operating_mode == OPERATING_MODE::MOMENTARY) {
@@ -396,7 +397,7 @@ void loop() {
   }
 
 
-  if (voltage == 0 || x_millis() - bat_check_timer > 120000) {
+  if (voltage == 0 || x_millis() - bat_check_timer > 10000) {
     voltage = (read_Vcc() + VCC_OFFSET) / 10;
     bat_check_timer = x_millis();
   }
@@ -418,8 +419,6 @@ void loop() {
     }
   }
 
-  //  pinMode(USB_POWER_PIN, INPUT);
-  //  pinMode(CHARGING_STATUS_PIN, INPUT);
 #endif
 
 

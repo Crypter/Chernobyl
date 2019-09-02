@@ -6,13 +6,18 @@
 #define MIN_BRIGHTNESS 3
 #define MICROS_PER_BRIGHTNESS_STEP 350 //simulating a normal bulb
 #define INVERTED_BRIGHTNESS 1 //p-channel mosfet driver
+#define VCC_OFFSET 310 //sometimes a diode is place, which drops the BATT voltage by 300 or 700 millivolts
 
 // min brightness = 3
 #ifdef __AVR_ATtiny85__
 #define LED_PIN 4
 #define BUTTON_PIN 3
-#define INTERRUPT_BUTTON_PIN PCINT3
 #define DELAY_MULTIPLIER (uint32_t)64
+
+#define RED_LED_PIN 0
+#define GREEN_LED_PIN 1
+#define USB_POWER_PIN 5 //RESET!!!
+#define CHARGING_STATUS_PIN 2
 
 #else
 #define LED_PIN 3
@@ -31,6 +36,7 @@ enum class OPERATING_MODE {
   MOMENTARY,
   STROBE,
   VOLTAGE,
+  CHARGING,
   MAX
 };
 
@@ -40,7 +46,7 @@ int8_t adjust_direction = 0;
 int32_t adjust_brightness = 0;
 uint8_t start_brightness = 0;
 
-OPERATING_MODE operating_mode = OPERATING_MODE::ON, debug_print = OPERATING_MODE::ON;
+OPERATING_MODE operating_mode = OPERATING_MODE::ON; /*, debug_print = OPERATING_MODE::ON;*/
 uint8_t brightness = 1, current_brightness = 1, sleep_mode = 1, beacon_mode = 0;
 uint32_t mode_timer = 0, time_to_sleep = 0, brightness_timer = 0;
 uint16_t voltage = 0;
@@ -55,10 +61,10 @@ void ISR_ROUTINE() {
 #endif
 
 void sleep() {
-  nanoDebug("SPIJAM");
+  //nanoDebug("SPIJAM");
 #ifdef __AVR_ATtiny85__
   GIMSK |= _BV(PCIE);                     // Enable Pin Change Interrupts
-  PCMSK |= _BV(INTERRUPT_BUTTON_PIN);     // Use PB3 as interrupt pin
+  PCMSK = _BV(BUTTON_PIN) | _BV(USB_POWER_PIN);     // Use PB3 as interrupt pin
 #else
   attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), ISR_ROUTINE, CHANGE);
 #endif
@@ -71,7 +77,7 @@ void sleep() {
 
   cli();                                  // Disable interrupts
 #ifdef __AVR_ATtiny85__
-  PCMSK &= ~_BV(INTERRUPT_BUTTON_PIN);    // Turn off PB3 as interrupt pin
+  PCMSK = 0;    // Turn off PB3 as interrupt pin
 #else
   detachInterrupt(digitalPinToInterrupt(BUTTON_PIN));
 #endif
@@ -88,22 +94,19 @@ void led_write(uint8_t force = 0) {
   uint8_t target_brightness = (light_enabled) ? brightness : 0;
   if (force) {
     current_brightness = target_brightness;
-      nanoDebug(String(  "forced brightness"   ).c_str());
   }
-  
-  if (current_brightness == target_brightness){    
-      brightness_timer = x_micros();
+
+  if (current_brightness == target_brightness) {
+    brightness_timer = x_micros();
 
   } else if (current_brightness < target_brightness) {
     if (x_micros() - brightness_timer >= MICROS_PER_BRIGHTNESS_STEP) {
-      nanoDebug(String(  String(x_micros() - brightness_timer) + " | " + String(current_brightness)   ).c_str());
       current_brightness += min(target_brightness - current_brightness, (x_micros() - brightness_timer) / MICROS_PER_BRIGHTNESS_STEP);
       brightness_timer = x_micros();
     }
 
   } else if (current_brightness > target_brightness) {
     if (x_micros() - brightness_timer >= MICROS_PER_BRIGHTNESS_STEP) {
-      nanoDebug(String(  String(x_micros() - brightness_timer) + " | " + String(current_brightness)   ).c_str());
       current_brightness -= min(current_brightness - target_brightness, (x_micros() - brightness_timer) / MICROS_PER_BRIGHTNESS_STEP);
       brightness_timer = x_micros();
     }
@@ -113,7 +116,7 @@ void led_write(uint8_t force = 0) {
 
 
 void button_down(uint8_t clickCount) {
-  nanoDebug("button_down");
+  //nanoDebug("button_down");
 
   if (operating_mode == OPERATING_MODE::MOMENTARY) {
     light_enabled = 1;
@@ -131,7 +134,7 @@ void button_down(uint8_t clickCount) {
 }
 
 void button_hold(uint8_t clickCount) {
-  nanoDebug("button_hold");
+  //nanoDebug("button_hold");
 
   if (operating_mode == OPERATING_MODE::MOMENTARY) { //momentary mode can't be bothered by long clicks
     mainButton.endChain();
@@ -173,7 +176,7 @@ void button_hold(uint8_t clickCount) {
 }
 
 void button_up(uint8_t clickCount) {
-  nanoDebug("button_up");
+  //nanoDebug("button_up");
 
   if (sleep_mode == 2) {
     sleep_mode = 3;
@@ -195,7 +198,7 @@ void button_up(uint8_t clickCount) {
 }
 
 void button_at_rest(uint8_t clickCount) {
-  nanoDebug("button_at_rest");
+  //nanoDebug("button_at_rest");
 
   if (operating_mode == OPERATING_MODE::BRIGHTNESS_ADJUST) {
     operating_mode = OPERATING_MODE::ON;
@@ -266,6 +269,15 @@ void setup() {
   TCCR0B = 0 << WGM02 | 1 << CS00;
   TCCR1 = 0 << PWM1A | 0 << COM1A0 | 1 << CS10;
   GTCCR = 1 << PWM1B | 2 << COM1B0;
+
+
+  pinMode(RED_LED_PIN, OUTPUT);
+  pinMode(GREEN_LED_PIN, OUTPUT);
+  digitalWrite(RED_LED_PIN, LOW);
+  digitalWrite(GREEN_LED_PIN, LOW);
+
+  pinMode(USB_POWER_PIN, INPUT);
+  pinMode(CHARGING_STATUS_PIN, INPUT);
 #else
   Serial.begin(115200);
   pinMode(5, OUTPUT);
@@ -280,29 +292,29 @@ void setup() {
   mainButton.begin(350 * DELAY_MULTIPLIER);
 
   x_delay(50);
-  nanoDebug("START");
+  //nanoDebug("START");
 }
 
 void loop() {
-  if (sleep_mode == 1 && !current_brightness ) sleep();
+  if (sleep_mode == 1 && !current_brightness && !digitalRead(USB_POWER_PIN)) sleep();
 
   mainButton.run();
-
-  if (operating_mode != debug_print) {
-    debug_print = operating_mode;
-    if (operating_mode == OPERATING_MODE::ON) {
-      nanoDebug("OPERATING_MODE::ON");
-    } else if (operating_mode == OPERATING_MODE::BRIGHTNESS_ADJUST) {
-      nanoDebug("OPERATING_MODE::BRIGHTNESS_ADJUST");
-    } else if (operating_mode == OPERATING_MODE::MOMENTARY) {
-      nanoDebug("OPERATING_MODE::MOMENTARY");
-    } else if (operating_mode == OPERATING_MODE::STROBE) {
-      nanoDebug("OPERATING_MODE::STROBE");
-    } else if (operating_mode == OPERATING_MODE::VOLTAGE) {
-      nanoDebug("OPERATING_MODE::VOLTAGE");
+  /*
+    if (operating_mode != debug_print) {
+      debug_print = operating_mode;
+      if (operating_mode == OPERATING_MODE::ON) {
+        //nanoDebug("OPERATING_MODE::ON");
+      } else if (operating_mode == OPERATING_MODE::BRIGHTNESS_ADJUST) {
+        //nanoDebug("OPERATING_MODE::BRIGHTNESS_ADJUST");
+      } else if (operating_mode == OPERATING_MODE::MOMENTARY) {
+        //nanoDebug("OPERATING_MODE::MOMENTARY");
+      } else if (operating_mode == OPERATING_MODE::STROBE) {
+        //nanoDebug("OPERATING_MODE::STROBE");
+      } else if (operating_mode == OPERATING_MODE::VOLTAGE) {
+        //nanoDebug("OPERATING_MODE::VOLTAGE");
+      }
     }
-  }
-
+  */
 
   if (operating_mode == OPERATING_MODE::BRIGHTNESS_ADJUST) {
     if (adjust_direction) {
@@ -334,32 +346,29 @@ void loop() {
     if (beacon_mode > 0) led_write(1);
 
   } else if (operating_mode == OPERATING_MODE::VOLTAGE) {
-    //    nanoDebug(String(  String((int32_t)x_millis() - mode_timer) + String(" | ") + String(voltage) + String(", ") + String(voltage_digit) + String(", ") + String(voltage_temp)  ).c_str());
+//        nanoDebug(String(  String((int32_t)x_millis() - mode_timer) + String(" | ") + String(voltage) + String(", ") + String(voltage_digit) + String(", ") + String(voltage_temp)  ).c_str());
 
     if (voltage_digit == 0 && voltage_temp == 0) {
       light_enabled = 0;
-      led_write();
-      voltage = read_Vcc() / 10;
+      led_write(1);
+      voltage = (read_Vcc() + VCC_OFFSET) / 10;
       voltage_digit = 3;
     }
 
     if (voltage_temp == 0) {
-      nanoDebug("voltage_temp == 0");
       voltage_temp = (voltage / (((voltage_digit >= 3) ? 10 : 1 ) * ((voltage_digit >= 2) ? 10 : 1 )) ) % 10;
       if (voltage_temp == 0) voltage_temp = 10;
       voltage_digit--;
       mode_timer = x_millis() + 2000;
     } else if ((int32_t)x_millis() - (int32_t)mode_timer >= 1000) {
-      nanoDebug("voltage_temp && ((int32_t)x_millis() - mode_timer >= 1000)");
       voltage_temp--;
       mode_timer = x_millis();
     }
 
     light_enabled = ((int32_t)x_millis() - (int32_t)mode_timer >= 500);
-    led_write();
+    led_write(1);
 
     if (voltage_digit == 0 && voltage_temp == 0 && voltage != 0) {
-      nanoDebug("voltage_digit == 0 && voltage_temp == 0 && voltage != 0");
       voltage = 0;
       operating_mode = OPERATING_MODE::ON;
       sleep_mode = 1;
@@ -368,5 +377,17 @@ void loop() {
 
   led_write();
 
+#ifdef __AVR_ATtiny85__
+  if (digitalRead(USB_POWER_PIN)) {
+    operating_mode = OPERATING_MODE::CHARGING;
+    sleep_mode = 0;
+    light_enabled = 0;
+  }
+  analogWrite(RED_LED_PIN, (digitalRead(USB_POWER_PIN) && !digitalRead(CHARGING_STATUS_PIN)) ? 8 : 0);
+  analogWrite(GREEN_LED_PIN, (sleep_mode == 1 || digitalRead(CHARGING_STATUS_PIN)) ? 0 : 8);
+
+  //  pinMode(USB_POWER_PIN, INPUT);
+  //  pinMode(CHARGING_STATUS_PIN, INPUT);
+#endif
 
 }

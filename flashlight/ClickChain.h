@@ -10,7 +10,7 @@ class ClickChain {
     uint32_t state_change_timeout;
     uint32_t timer;
 
-    uint8_t last_click_event = 0;
+    uint8_t last_click_event = 0, end_chain=0;
     uint32_t click_chain_timer = 0;
     uint8_t debounce_pin_state = 1, old_pin_state = 1, click_chain_counter = 0;
     uint32_t debounce_timer = 0, time_to_sleep = 0, debounce_ms;
@@ -27,13 +27,6 @@ class ClickChain {
       }
 
       if (millis() - debounce_timer > debounce_ms && pin_state != old_pin_state) {
-
-        if (click_chain_counter == 0 && pin_state == resting_position) {
-          last_click_event = 0;
-          old_pin_state = pin_state;
-          return; //error state, we missed the start of the click or the chain has ended, anyway nothing to do
-        }
-
         click_chain_timer = millis();
         click_chain_counter++;
         old_pin_state = pin_state;
@@ -46,25 +39,26 @@ class ClickChain {
         if (click_chain_counter % 2) { //button pressed
           if (last_click_event == 0 || last_click_event == 3) {
             last_click_event = 1;
-            if (button_down) button_down(click_chain_counter / 2 + 1); //call button pressed function
+            if (button_down && !end_chain) button_down(click_chain_counter / 2 + 1); //call button pressed function
           }
 
           if ((millis() - click_chain_timer) > state_change_timeout ) {
             if (last_click_event == 1) {
               last_click_event = 2;
-              if (button_hold) button_hold(click_chain_counter / 2 + 1); //call button hold confirmed function
+              if (button_hold && !end_chain) button_hold(click_chain_counter / 2 + 1); //call button hold confirmed function
             }
           }
         } else { //button not pressed
           if (last_click_event == 1 || last_click_event == 2) {
             last_click_event = 3;
-            if (button_up) button_up(click_chain_counter / 2); //call button at rest function
+            if (button_up && !end_chain) button_up(click_chain_counter / 2); //call button at rest function
           }
           if ((millis() - click_chain_timer) > state_change_timeout ) {
             if (last_click_event == 3) {
               last_click_event = 0;
-              if (button_at_rest) button_at_rest(click_chain_counter / 2); //call button at rest confirmed function
+              if (button_at_rest && !end_chain) button_at_rest(click_chain_counter / 2); //call button at rest confirmed function
               click_chain_counter = 0;
+              end_chain=0;
             }
           }
         }
@@ -103,8 +97,12 @@ class ClickChain {
         return millis() - click_chain_timer;
     }
 
+    uint8_t lastEvent(){
+      return last_click_event;
+    }
+
     void endChain() {
-      click_chain_counter = 0;
+      end_chain = 1;
     }
 
 };

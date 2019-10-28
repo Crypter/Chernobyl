@@ -54,25 +54,13 @@ int16_t read_temperature() {
 
 
 uint32_t x_millis() {
-#ifdef __AVR_ATtiny85__
   return millis() / DELAY_MULTIPLIER;
-#else
-  return millis();
-#endif
 }
 
 uint32_t x_micros() {
-#ifdef __AVR_ATtiny85__
   return micros() / DELAY_MULTIPLIER;
-#else
-  return micros();
-#endif
 }
 
 void x_delay(uint32_t X) {
-#ifdef __AVR_ATtiny85__
   return delay(X * DELAY_MULTIPLIER);
-#else
-  return delay(X);
-#endif
 }

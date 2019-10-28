@@ -51,7 +51,7 @@ uint8_t brightness = 1, current_brightness = 1, sleep_mode = 1, beacon_mode = 0;
 uint32_t mode_timer = 0, brightness_timer = 0, bat_check_timer = 0;
 uint16_t voltage = 0;
 uint8_t voltage_temp = 0, voltage_digit = 0;
-const uint16_t beacon_duration[4][3] = {{500, 1000, 0}, {100, 900, 0}, {50, 150, 0}, {0}}; //zero terminated arrays, both ways
+const uint16_t beacon_duration[5][5] = {{500, 1000, 0}, {100, 1000, 0}, {100, 250, 350, 1000, 0}, {50, 150, 0}, {0}}; //zero terminated arrays, both ways
 
 #ifdef __AVR_ATtiny85__
 ISR(PCINT0_vect) {}
@@ -274,14 +274,21 @@ void setup() {
   TCCR1 = 0 << PWM1A | 0 << COM1A0 | 1 << CS10;
   GTCCR = 1 << PWM1B | 2 << COM1B0;
 
+  #if defined(RED_LED_PIN) && defined(GREEN_LED_PIN)
+    pinMode(RED_LED_PIN, OUTPUT);
+    digitalWrite(RED_LED_PIN, LOW);
+  
+    pinMode(GREEN_LED_PIN, OUTPUT);
+    digitalWrite(GREEN_LED_PIN, LOW);
+  #endif
 
-  pinMode(RED_LED_PIN, OUTPUT);
-  pinMode(GREEN_LED_PIN, OUTPUT);
-  digitalWrite(RED_LED_PIN, LOW);
-  digitalWrite(GREEN_LED_PIN, LOW);
+  #if defined(USB_POWER_PIN) && defined(CHARGING_STATUS_PIN)
+    pinMode(USB_POWER_PIN, INPUT);
+    pinMode(CHARGING_STATUS_PIN, INPUT);
+  #endif
 
-  pinMode(USB_POWER_PIN, INPUT);
-  pinMode(CHARGING_STATUS_PIN, INPUT);
+
+
 #else
   Serial.begin(115200);
   pinMode(5, OUTPUT);
@@ -300,7 +307,7 @@ void setup() {
 }
 
 void loop() {
-  if (sleep_mode == 1 && !current_brightness && !digitalRead(USB_POWER_PIN)) sleep();
+  if (sleep_mode == 1 && !current_brightness && !digitalRead(USB_POWER_PIN) && !mainButton.lastEvent()) sleep();
 
   mainButton.run();
   /*
@@ -382,6 +389,12 @@ void loop() {
 
 #ifdef __AVR_ATtiny85__
 
+  if (voltage == 0 || x_millis() - bat_check_timer > 5000) {
+    voltage = (read_Vcc() + VCC_OFFSET) / 10;
+    bat_check_timer = x_millis();
+  }
+
+  #if defined(USB_POWER_PIN) && defined(CHARGING_STATUS_PIN)
   uint8_t power_pin = digitalRead(USB_POWER_PIN);
   uint8_t charging_pin = digitalRead(CHARGING_STATUS_PIN);
 
@@ -397,27 +410,26 @@ void loop() {
   }
 
 
-  if (voltage == 0 || x_millis() - bat_check_timer > 10000) {
-    voltage = (read_Vcc() + VCC_OFFSET) / 10;
-    bat_check_timer = x_millis();
-  }
-
   if (power_pin) {
-    analogWrite(GREEN_LED_PIN, (charging_pin) ? 8 : 0);
-    analogWrite(RED_LED_PIN, (charging_pin) ? 0 : 8);
-
+    analogWrite(GREEN_LED_PIN, (charging_pin) ? 8 : 0); //8 brightness, more than enough
+    analogWrite(RED_LED_PIN, (charging_pin) ? 0 : 32);
   } else {
+    #endif
+    #if defined(RED_LED_PIN) && defined(GREEN_LED_PIN)
     if (voltage > 370) {
       analogWrite(GREEN_LED_PIN, (sleep_mode == 1) ? 0 : 8);
       digitalWrite(RED_LED_PIN, 0);
     } else if (voltage > 320) {
       analogWrite(GREEN_LED_PIN, (sleep_mode == 1) ? 0 : 8);
-      analogWrite(RED_LED_PIN,  (sleep_mode == 1) ? 0 : 8);
+      analogWrite(RED_LED_PIN,  (sleep_mode == 1) ? 0 : 32);
     } else {
       digitalWrite(GREEN_LED_PIN, 0);
-      analogWrite(RED_LED_PIN,  (sleep_mode == 1 || (x_millis() / 500) % 2) ? 0 : 8);
+      analogWrite(RED_LED_PIN,  (sleep_mode == 1 || (x_millis() / 500) % 2) ? 0 : 32);
     }
+    #endif
+    #if defined(USB_POWER_PIN) && defined(CHARGING_STATUS_PIN)
   }
+    #endif
 
 #endif
 

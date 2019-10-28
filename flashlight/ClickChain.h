@@ -13,7 +13,7 @@ class ClickChain {
     uint8_t last_click_event = 0, end_chain=0;
     uint32_t click_chain_timer = 0;
     uint8_t debounce_pin_state = 1, old_pin_state = 1, click_chain_counter = 0;
-    uint32_t debounce_timer = 0, time_to_sleep = 0, debounce_ms;
+    uint32_t debounce_timer = 0, debounce_ms;
 
     void (*button_down)(uint8_t), (*button_up)(uint8_t); //immediate actions
     void (*button_hold)(uint8_t), (*button_at_rest)(uint8_t); //confirmed actions
@@ -27,6 +27,11 @@ class ClickChain {
       }
 
       if (millis() - debounce_timer > debounce_ms && pin_state != old_pin_state) {
+        if (click_chain_counter == 0 && pin_state == resting_position) {
+          last_click_event = 0;
+          old_pin_state = pin_state;
+          return; //error state, we missed the start of the click, probably the button was not resting during initialisation, anyway nothing to do
+        }
         click_chain_timer = millis();
         click_chain_counter++;
         old_pin_state = pin_state;

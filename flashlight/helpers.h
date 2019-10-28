@@ -9,6 +9,14 @@ const uint8_t cie[256] = {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 
 //#endif
 //}
 
+uint8_t brightness_to_pwm(uint8_t brightness){
+  if (INVERTED_BRIGHTNESS){
+    return map(brightness, 0, 255, MAX_BRIGHTNESS, MIN_BRIGHTNESS);
+  } else {
+    return map(brightness, 0, 255, MIN_BRIGHTNESS, MAX_BRIGHTNESS);
+  }
+}
+
 uint16_t read_Vcc() {
 //  return 4200;
   // Read 1.1V reference against AVcc

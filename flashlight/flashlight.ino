@@ -2,11 +2,11 @@
 #include <avr/interrupt.h>
 
 
-#define MAX_BRIGHTNESS 251  //turbo will always be 255
-#define MIN_BRIGHTNESS 3
+#define MAX_BRIGHTNESS 255  //turbo will always be 255
+#define MIN_BRIGHTNESS 0    //the step where there's officially no visible light
 #define MICROS_PER_BRIGHTNESS_STEP 350 //simulating a normal bulb
-#define INVERTED_BRIGHTNESS 1 //p-channel mosfet driver
-#define VCC_OFFSET 210 //sometimes a diode is place, which drops the BATT voltage by 300 or 700 millivolts
+#define INVERTED_BRIGHTNESS 1 //1 for p-channel mosfet driver
+#define VCC_OFFSET 210 //sometimes a diode is place, which drops the BATT voltage roughly by 300 or 700 millivolts, depending on type
 
 // min brightness = 3
 #ifdef __AVR_ATtiny85__
@@ -14,11 +14,12 @@
 #define BUTTON_PIN 3
 #define DELAY_MULTIPLIER (uint32_t)64
 
+/* //tankata
 #define RED_LED_PIN 0
 #define GREEN_LED_PIN 1
 #define USB_POWER_PIN 5 //RESET!!!
 #define CHARGING_STATUS_PIN 2
-
+*/
 #else
 #define LED_PIN 3
 #define BUTTON_PIN 2
@@ -64,7 +65,12 @@ void sleep() {
   //nanoDebug("SPIJAM");
 #ifdef __AVR_ATtiny85__
   GIMSK |= _BV(PCIE);                     // Enable Pin Change Interrupts
-  PCMSK = _BV(BUTTON_PIN) | _BV(USB_POWER_PIN);     // Use PB3 as interrupt pin
+  
+  #if defined(USB_POWER_PIN)
+  PCMSK = _BV(BUTTON_PIN) | _BV(USB_POWER_PIN);     // Use PB3 as and power pin as interrupt pin
+  #else
+  PCMSK = _BV(BUTTON_PIN);     // Use PB3 as interrupt pin
+  #endif
 #else
   attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), ISR_ROUTINE, CHANGE);
 #endif
@@ -111,7 +117,8 @@ void led_write(uint8_t force = 0) {
       brightness_timer = x_micros();
     }
   }
-  analogWrite(LED_PIN, (INVERTED_BRIGHTNESS) ? 255 - cie[current_brightness] : cie[current_brightness]);
+
+  analogWrite(LED_PIN, cie[ brightness_to_pwm(current_brightness) ]);
 }
 
 
@@ -307,8 +314,13 @@ void setup() {
 }
 
 void loop() {
-  if (sleep_mode == 1 && !current_brightness && !digitalRead(USB_POWER_PIN) && !mainButton.lastEvent()) sleep();
 
+  #if defined(USB_POWER_PIN)
+  if (sleep_mode == 1 && !current_brightness && !digitalRead(USB_POWER_PIN) && !mainButton.lastEvent()) sleep();
+  #else
+  if (sleep_mode == 1 && !current_brightness && !mainButton.lastEvent()) sleep();
+  #endif
+  
   mainButton.run();
   /*
     if (operating_mode != debug_print) {
@@ -330,10 +342,10 @@ void loop() {
   if (operating_mode == OPERATING_MODE::BRIGHTNESS_ADJUST) {
     if (adjust_direction) {
       uint32_t duration = (mainButton.sinceLastEvent() / DELAY_MULTIPLIER );
-      adjust_brightness = (duration / 2000.0) * 254;
+      adjust_brightness = duration * 3 / 25 ; // approximate overflow limit reduction from: 254/2000, 3/25 = 240/2000
       adjust_brightness *= adjust_direction;
       if ((int32_t)start_brightness + adjust_brightness < 0) adjust_brightness = (int32_t) - start_brightness;
-      if ((int32_t)start_brightness + adjust_brightness > 254) adjust_brightness = (int32_t)254 - start_brightness;
+      else if ((int32_t)start_brightness + adjust_brightness > 254) adjust_brightness = (int32_t)254 - start_brightness;
       adjust_brightness += 1;
     }
 

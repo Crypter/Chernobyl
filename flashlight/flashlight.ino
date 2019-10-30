@@ -2,11 +2,12 @@
 #include <avr/interrupt.h>
 
 
-#define MAX_BRIGHTNESS 255  //turbo will always be 255
-#define MIN_BRIGHTNESS 0    //the step where there's officially no visible light
+#define MAX_BRIGHTNESS 250  //turbo will always be 255, fatman safe is 250
+#define MIN_BRIGHTNESS 27    //the step where there's officially no visible light
 #define MICROS_PER_BRIGHTNESS_STEP 350 //simulating a normal bulb
-#define INVERTED_BRIGHTNESS 1 //1 for p-channel mosfet driver
-#define VCC_OFFSET 210 //sometimes a diode is place, which drops the BATT voltage roughly by 300 or 700 millivolts, depending on type
+#define INVERTED_BRIGHTNESS 0 //1 for p-channel mosfet driver
+//#define VCC_OFFSET 210 //sometimes a diode is place, which drops the BATT voltage roughly by 300 or 700 millivolts, depending on type
+#define VCC_OFFSET 0 //sometimes a diode is place, which drops the BATT voltage roughly by 300 or 700 millivolts, depending on type
 
 // min brightness = 3
 #ifdef __AVR_ATtiny85__
@@ -52,7 +53,7 @@ uint8_t brightness = 1, current_brightness = 1, sleep_mode = 1, beacon_mode = 0;
 uint32_t mode_timer = 0, brightness_timer = 0, bat_check_timer = 0;
 uint16_t voltage = 0;
 uint8_t voltage_temp = 0, voltage_digit = 0;
-const uint16_t beacon_duration[5][5] = {{500, 1000, 0}, {100, 1000, 0}, {100, 250, 350, 1000, 0}, {50, 150, 0}, {0}}; //zero terminated arrays, both ways
+const uint16_t beacon_duration[5][5] = {{500, 1000, 0}, {100, 1000, 0}, {75, 150, 225, 1000, 0}, {50, 150, 0}, {0}}; //zero terminated arrays, both ways
 
 #ifdef __AVR_ATtiny85__
 ISR(PCINT0_vect) {}
@@ -345,7 +346,7 @@ void loop() {
       adjust_brightness = duration * 3 / 25 ; // approximate overflow limit reduction from: 254/2000, 3/25 = 240/2000
       adjust_brightness *= adjust_direction;
       if ((int32_t)start_brightness + adjust_brightness < 0) adjust_brightness = (int32_t) - start_brightness;
-      else if ((int32_t)start_brightness + adjust_brightness > 254) adjust_brightness = (int32_t)254 - start_brightness;
+      else if ((int32_t)start_brightness + adjust_brightness > 253) adjust_brightness = (int32_t)253 - start_brightness; //for max of 254, 255 is turbo
       adjust_brightness += 1;
     }
 

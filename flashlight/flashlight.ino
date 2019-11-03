@@ -316,7 +316,7 @@ void setup() {
 void loop() {
 
   #if defined(USB_POWER_PIN)
-  if (sleep_mode == 1 && !current_brightness && !digitalRead(USB_POWER_PIN) && !mainButton.lastEvent()) sleep();
+  if (sleep_mode == 1 && !current_brightness && !mainButton.lastEvent() && operating_mode!=OPERATING_MODE::CHARGING) sleep();
   #else
   if (sleep_mode == 1 && !current_brightness && !mainButton.lastEvent()) sleep();
   #endif
@@ -345,7 +345,7 @@ void loop() {
       adjust_brightness = duration * 3 / 25 ; // approximate overflow limit reduction from: 254/2000, 3/25 = 240/2000
       adjust_brightness *= adjust_direction;
       if ((int32_t)start_brightness + adjust_brightness < 0) adjust_brightness = (int32_t) - start_brightness;
-      else if ((int32_t)start_brightness + adjust_brightness > 253) adjust_brightness = (int32_t)253 - start_brightness; //for max of 254, 255 is turbo
+      else if ((int32_t)start_brightness + adjust_brightness > 254) adjust_brightness = (int32_t)254 - start_brightness; //for max of 254, 255 is turbo
       adjust_brightness += 1;
     }
 
@@ -408,7 +408,7 @@ void loop() {
 
   #if defined(USB_POWER_PIN) && defined(CHARGING_STATUS_PIN)
   uint8_t power_pin = digitalRead(USB_POWER_PIN);
-  uint8_t charging_pin = !digitalRead(CHARGING_STATUS_PIN); //down when charging, up when done
+  uint8_t charging_pin = digitalRead(CHARGING_STATUS_PIN); //down when charging, up when done, up when not chargin in general
   if (power_pin) {
     operating_mode = OPERATING_MODE::CHARGING;
     sleep_mode = 0;
@@ -425,7 +425,9 @@ void loop() {
 
 
   if (power_pin) {
-    analogWrite(GREEN_LED_PIN, (charging_pin) ? 255-8 : ((x_millis() / 500) % 2) * (255-8)); //8 brightness, more than enough
+    if (charging_pin){
+      analogWrite(GREEN_LED_PIN, ((x_millis() / 500) % 2) ? 255-8 : 255-64); //8 brightness, more than enough
+    }
 //    analogWrite(RED_LED_PIN, (charging_pin) ? 255-0 : 255-255); //red is super easy to burn out. fuck.
   } else {
     #endif

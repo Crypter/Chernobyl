@@ -10,14 +10,15 @@ const uint8_t cie[256] = {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 
 //}
 
 uint8_t brightness_to_pwm(uint8_t brightness){
+    if (brightness == 255 || brightness == 0) return brightness; //digital
+    else return map(brightness, 0, 255, MIN_BRIGHTNESS, MAX_BRIGHTNESS);
+}
+
+uint8_t pwm_to_cie(uint8_t pwm){
   if (INVERTED_BRIGHTNESS){
-    if (brightness == 255) return 0;
-    else if (brightness == 0) return 255;
-    else return map(brightness, 1, 254, MAX_BRIGHTNESS, MIN_BRIGHTNESS);
+    return 255-cie[pwm];
   } else {
-    if (brightness == 255) return 255;
-    else if (brightness == 0) return 0;
-    else return map(brightness, 1, 254, MIN_BRIGHTNESS, MAX_BRIGHTNESS);
+    return cie[pwm];
   }
 }
 

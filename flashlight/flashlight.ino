@@ -2,25 +2,24 @@
 #include <avr/interrupt.h>
 
 
-#define MAX_BRIGHTNESS 250  //turbo will always be 255, fatman safe is 250
-#define MIN_BRIGHTNESS 27    //the step where there's officially no visible light
+#define MAX_BRIGHTNESS 255  //turbo will always be 255, fatman safe is 250
+#define MIN_BRIGHTNESS 1    //the step where there's officially no visible light
 #define MICROS_PER_BRIGHTNESS_STEP 350 //simulating a normal bulb
-#define INVERTED_BRIGHTNESS 0 //1 for p-channel mosfet driver
-//#define VCC_OFFSET 210 //sometimes a diode is place, which drops the BATT voltage roughly by 300 or 700 millivolts, depending on type
-#define VCC_OFFSET 0 //sometimes a diode is place, which drops the BATT voltage roughly by 300 or 700 millivolts, depending on type
+#define INVERTED_BRIGHTNESS 1 //1 for p-channel mosfet driver
+#define VCC_OFFSET 210 //sometimes a diode is place, which drops the BATT voltage roughly by 300 or 700 millivolts, depending on type
+//#define VCC_OFFSET 0 //sometimes a diode is place, which drops the BATT voltage roughly by 300 or 700 millivolts, depending on type
 
-// min brightness = 3
 #ifdef __AVR_ATtiny85__
 #define LED_PIN 4
 #define BUTTON_PIN 3
 #define DELAY_MULTIPLIER (uint32_t)64
 
-/* //tankata
+ //tankata
 #define RED_LED_PIN 0
 #define GREEN_LED_PIN 1
 #define USB_POWER_PIN 5 //RESET!!!
 #define CHARGING_STATUS_PIN 2
-*/
+
 #else
 #define LED_PIN 3
 #define BUTTON_PIN 2
@@ -119,7 +118,7 @@ void led_write(uint8_t force = 0) {
     }
   }
 
-  analogWrite(LED_PIN, cie[ brightness_to_pwm(current_brightness) ]);
+  analogWrite(LED_PIN, pwm_to_cie(brightness_to_pwm(current_brightness)) );
 }
 
 
@@ -424,20 +423,22 @@ void loop() {
 
 
   if (power_pin) {
-    analogWrite(GREEN_LED_PIN, (charging_pin) ? 8 : 0); //8 brightness, more than enough
-    analogWrite(RED_LED_PIN, (charging_pin) ? 0 : 32);
+    analogWrite(GREEN_LED_PIN, (charging_pin) ? 255-8 : 255-0); //8 brightness, more than enough
+    analogWrite(RED_LED_PIN, (charging_pin) ? 255-0 : 255-255); //red is super easy to burn out. fuck.
   } else {
     #endif
     #if defined(RED_LED_PIN) && defined(GREEN_LED_PIN)
     if (voltage > 370) {
-      analogWrite(GREEN_LED_PIN, (sleep_mode == 1) ? 0 : 8);
-      digitalWrite(RED_LED_PIN, 0);
+      analogWrite(GREEN_LED_PIN, (sleep_mode == 1) ? 255-0 : 255-8);
+      digitalWrite(RED_LED_PIN, 1);
+      
     } else if (voltage > 320) {
-      analogWrite(GREEN_LED_PIN, (sleep_mode == 1) ? 0 : 8);
-      analogWrite(RED_LED_PIN,  (sleep_mode == 1) ? 0 : 32);
+      analogWrite(GREEN_LED_PIN, (sleep_mode == 1) ? 255-0 : 255-8);
+      analogWrite(RED_LED_PIN,  (sleep_mode == 1) ? 255-0 : 255-255);
+      
     } else {
-      digitalWrite(GREEN_LED_PIN, 0);
-      analogWrite(RED_LED_PIN,  (sleep_mode == 1 || (x_millis() / 500) % 2) ? 0 : 32);
+      digitalWrite(GREEN_LED_PIN, 1);
+      analogWrite(RED_LED_PIN,  (sleep_mode == 1 || (x_millis() / 500) % 2) ? 255-0 : 255-255);
     }
     #endif
     #if defined(USB_POWER_PIN) && defined(CHARGING_STATUS_PIN)

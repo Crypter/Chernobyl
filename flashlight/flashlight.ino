@@ -408,8 +408,7 @@ void loop() {
 
   #if defined(USB_POWER_PIN) && defined(CHARGING_STATUS_PIN)
   uint8_t power_pin = digitalRead(USB_POWER_PIN);
-  uint8_t charging_pin = digitalRead(CHARGING_STATUS_PIN);
-
+  uint8_t charging_pin = !digitalRead(CHARGING_STATUS_PIN); //down when charging, up when done
   if (power_pin) {
     operating_mode = OPERATING_MODE::CHARGING;
     sleep_mode = 0;
@@ -422,23 +421,26 @@ void loop() {
   }
 
 
+      digitalWrite(RED_LED_PIN, 1); //fuck
+
+
   if (power_pin) {
-    analogWrite(GREEN_LED_PIN, (charging_pin) ? 255-8 : 255-0); //8 brightness, more than enough
-    analogWrite(RED_LED_PIN, (charging_pin) ? 255-0 : 255-255); //red is super easy to burn out. fuck.
+    analogWrite(GREEN_LED_PIN, (charging_pin) ? 255-8 : ((x_millis() / 500) % 2) * (255-8)); //8 brightness, more than enough
+//    analogWrite(RED_LED_PIN, (charging_pin) ? 255-0 : 255-255); //red is super easy to burn out. fuck.
   } else {
     #endif
     #if defined(RED_LED_PIN) && defined(GREEN_LED_PIN)
     if (voltage > 370) {
       analogWrite(GREEN_LED_PIN, (sleep_mode == 1) ? 255-0 : 255-8);
-      digitalWrite(RED_LED_PIN, 1);
+//      digitalWrite(RED_LED_PIN, 1);
       
-    } else if (voltage > 320) {
+    }/* else if (voltage > 320) {
       analogWrite(GREEN_LED_PIN, (sleep_mode == 1) ? 255-0 : 255-8);
-      analogWrite(RED_LED_PIN,  (sleep_mode == 1) ? 255-0 : 255-255);
+      analogWrite(RED_LED_PIN,  (sleep_mode == 1) ? 255-0 : 255-8);
       
-    } else {
-      digitalWrite(GREEN_LED_PIN, 1);
-      analogWrite(RED_LED_PIN,  (sleep_mode == 1 || (x_millis() / 500) % 2) ? 255-0 : 255-255);
+    }*/ else {
+//      digitalWrite(GREEN_LED_PIN, 1);
+      analogWrite(GREEN_LED_PIN,  (sleep_mode == 1 || (x_millis() / 500) % 2) ? 255-0 : 255-8);
     }
     #endif
     #if defined(USB_POWER_PIN) && defined(CHARGING_STATUS_PIN)

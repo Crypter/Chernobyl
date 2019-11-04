@@ -436,7 +436,7 @@ void loop() {
 
     } else {
       digitalWrite(GREEN_LED_PIN, 1);
-      analogWrite(GREEN_LED_PIN,  (sleep_mode == 1 || (x_millis() / 500) % 2) ? 255-0 : 255-8);
+      analogWrite(RED_LED_PIN,  (sleep_mode == 1 || (x_millis() / 500) % 2) ? 255-0 : 255-8);
     }
   }
  #endif

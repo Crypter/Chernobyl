@@ -1,4 +1,4 @@
-<mxfile host="www.draw.io" modified="2019-11-05T17:33:32.655Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:70.0) Gecko/20100101 Firefox/70.0" etag="RsEvb0p2FwTz0zPM7Zfm" version="12.2.0" type="github" pages="1">
+<mxfile host="www.draw.io" modified="2019-11-05T17:33:59.221Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:70.0) Gecko/20100101 Firefox/70.0" etag="gwS-AVJj-XSdgckXq9yy" version="12.2.0" type="github" pages="1">
   <diagram id="0FhvJ4OS0k5Z7UG15rpF" name="Page-1">
     <mxGraphModel dx="2059" dy="1764" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
@@ -250,7 +250,7 @@
             <mxPoint x="183.5" y="575" as="targetPoint"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="MRnNkrN-hJjxFnHQ5Um4-87" value="Kategorijab" style="strokeWidth=2;whiteSpace=wrap;html=1;align=center;fontSize=14;" vertex="1" parent="1">
+        <mxCell id="MRnNkrN-hJjxFnHQ5Um4-87" value="Kategorija" style="strokeWidth=2;whiteSpace=wrap;html=1;align=center;fontSize=14;" vertex="1" parent="1">
           <mxGeometry x="550" y="865" width="100" height="100" as="geometry"/>
         </mxCell>
         <mxCell id="MRnNkrN-hJjxFnHQ5Um4-88" value="&lt;div&gt;Ime&lt;/div&gt;" style="ellipse;shape=ellipse;margin=10;strokeWidth=2;fontSize=14;whiteSpace=wrap;html=1;align=center;gradientColor=#ffffff;" vertex="1" parent="1">

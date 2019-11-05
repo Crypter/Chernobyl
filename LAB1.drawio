@@ -1,4 +1,4 @@
-<mxfile host="www.draw.io" modified="2019-11-05T18:00:04.009Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:70.0) Gecko/20100101 Firefox/70.0" etag="FaVPWc3wOBqtArFH6qhw" version="12.2.0" type="github" pages="1">
+<mxfile host="www.draw.io" modified="2019-11-05T18:02:21.442Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:70.0) Gecko/20100101 Firefox/70.0" etag="wkKhu0hmYTCwVMXhLa85" version="12.2.0" type="github" pages="1">
   <diagram id="0FhvJ4OS0k5Z7UG15rpF" name="Page-1">
     <mxGraphModel dx="2059" dy="1764" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
@@ -364,16 +364,16 @@
         <mxCell id="MRnNkrN-hJjxFnHQ5Um4-127" value="Na Zaliha" style="shape=rhombus;strokeWidth=2;fontSize=17;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fontSize=14;gradientColor=#ffffff;" vertex="1" parent="1">
           <mxGeometry x="750" y="515" width="100" height="100" as="geometry"/>
         </mxCell>
-        <mxCell id="MRnNkrN-hJjxFnHQ5Um4-128" value="" style="fontSize=12;html=1;endArrow=ERone;endFill=1;" edge="1" parent="1" source="MRnNkrN-hJjxFnHQ5Um4-127" target="MRnNkrN-hJjxFnHQ5Um4-26">
+        <mxCell id="MRnNkrN-hJjxFnHQ5Um4-130" value="" style="fontSize=12;html=1;endArrow=ERzeroToMany;endFill=1;" edge="1" parent="1" source="MRnNkrN-hJjxFnHQ5Um4-127" target="MRnNkrN-hJjxFnHQ5Um4-26">
           <mxGeometry width="100" height="100" relative="1" as="geometry">
-            <mxPoint x="1060" y="510" as="sourcePoint"/>
-            <mxPoint x="860" y="450" as="targetPoint"/>
+            <mxPoint x="540" y="640" as="sourcePoint"/>
+            <mxPoint x="640" y="540" as="targetPoint"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="MRnNkrN-hJjxFnHQ5Um4-129" value="" style="fontSize=12;html=1;endArrow=ERmany;" edge="1" parent="1" source="MRnNkrN-hJjxFnHQ5Um4-127" target="MRnNkrN-hJjxFnHQ5Um4-45">
+        <mxCell id="MRnNkrN-hJjxFnHQ5Um4-132" value="" style="fontSize=12;html=1;endArrow=ERzeroToMany;endFill=1;" edge="1" parent="1" source="MRnNkrN-hJjxFnHQ5Um4-127" target="MRnNkrN-hJjxFnHQ5Um4-45">
           <mxGeometry width="100" height="100" relative="1" as="geometry">
-            <mxPoint x="1199.8651870093731" y="550.0805361448774" as="sourcePoint"/>
-            <mxPoint x="1225" y="470" as="targetPoint"/>
+            <mxPoint x="810" y="525" as="sourcePoint"/>
+            <mxPoint x="810" y="485" as="targetPoint"/>
           </mxGeometry>
         </mxCell>
       </root>
